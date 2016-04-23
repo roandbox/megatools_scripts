@@ -1,0 +1,74 @@
+#! /bin/sh
+#
+# extfs support for megatools
+# Written by Rodionov Andrey <roand@inbox.ru>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+megatools_list ()
+{
+	ugid="`id -nu` `id -ng`"
+	date_re='\(....\)-\(..\)-\(..\) \(..:..:..\)'
+	date_mc='\3-\4-\2 \5'
+	size_re='............'
+	size_null='...........-'
+	pred='^....................... [1-9].'
+	pref='^....................... 0.'
+	megals -l | sed -n "s/$pred \($size_re\) $date_re \(.*\)/drwxr-xr-x 1 $ugid 0 $date_mc \6/p;s/$pref \($size_null\) $date_re \(.*\)/-rw-r--r-- 1 $ugid 0 $date_mc \6/p;s/$pref \($size_re\) $date_re \(.*\)/-rw-r--r-- 1 $ugid \1 $date_mc \6/p"
+}
+
+megatools_copyout ()
+{
+    rm "$3"
+    megaget --no-progress --path "$3" "/$2"
+}
+
+megatools_copyin ()
+{
+	megaput --no-progress --path "/$2" "$3"
+}
+
+megatools_mkdir ()
+{
+  megamkdir "/$2"
+}
+
+megatools_rm ()
+{
+  megarm "/$2"
+}
+
+megatools_rmdir ()
+{
+  megarm "/$2"
+}
+
+# override any locale for dates
+LC_DATE=C
+export LC_DATE
+
+umask 077
+
+cmd="$1"
+shift
+case "$cmd" in
+  list)    megatools_list    "$@" | sort -k 8 ;;
+  copyout) megatools_copyout "$@" ;;
+  copyin)  megatools_copyin  "$@" ;;
+  mkdir)   megatools_mkdir   "$@" ;;
+  rm)      megatools_rm      "$@" ;;
+  rmdir)   megatools_rmdir   "$@" ;;
+  *) exit 1 ;;
+esac
+exit 0
